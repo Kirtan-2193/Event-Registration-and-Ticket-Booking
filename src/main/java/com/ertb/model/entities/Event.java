@@ -44,4 +44,13 @@ public class Event {
     @Enumerated(EnumType.STRING)
     @Column(name = "event_status")
     private EventStatus eventStatus;
+
+    @Column(name = "available_ticket")
+    private int availableTicket;
+
+    @Column(name = "ticket_price")
+    private double ticketPrice;
+
+    @Column(name = "sold_out_ticket")
+    private int soldOutTicket;
 }

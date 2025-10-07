@@ -1,0 +1,16 @@
+package com.ertb.model.error;
+
+public enum ErrorType {
+
+    INVALID_DATA,
+    INVALID_FIELD,
+    INVALID_CREDENTIAL,
+    MISSING_PARAM,
+    MISSING_DATA,
+    DATA_ALREADY_EXIST,
+    DATA_NOT_FOUND,
+    INTERNAL_ERROR,
+    UNAUTHORIZED,
+    UNAUTHENTICATED
+
+}
