@@ -1,14 +1,11 @@
 package com.ertb.mappers;
 
-import com.ertb.model.BookedEvent;
-import com.ertb.model.EventModel;
-import com.ertb.model.entities.Event;
+import com.ertb.model.TicketModel;
+import com.ertb.model.entities.Ticket;
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.NullValueMappingStrategy;
 import org.mapstruct.ReportingPolicy;
-
-import java.util.List;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
@@ -18,13 +15,7 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
         builder = @Builder(disableBuilder = true),
         nullValueMappingStrategy = NullValueMappingStrategy.RETURN_NULL
 )
-public interface EventMapper {
+public interface TicketMapper {
 
-    Event eventModelToEvent(EventModel eventModel);
-
-    EventModel eventToEventModel(Event event);
-
-    List<EventModel> eventListToEventModelList(List<Event> eventList);
-
-    BookedEvent eventToBookedEvent(Event event);
+    TicketModel ticketToTicketModel(Ticket ticket);
 }
