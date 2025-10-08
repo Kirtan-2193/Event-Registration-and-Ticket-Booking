@@ -1,6 +1,7 @@
 package com.ertb.mappers;
 
 import com.ertb.model.UserModel;
+import com.ertb.model.UserTicket;
 import com.ertb.model.entities.User;
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
@@ -27,4 +28,6 @@ public interface UserMapper {
     List<UserModel> userListToUserModelList(List<User> users);
 
     void updateUserFromUserModel(UserModel userModel, @MappingTarget User user);
+
+    UserTicket userToUserTicket(User user);
 }
