@@ -31,4 +31,11 @@ public class EventModel {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String eventStatus;
+
+    private int availableTicket;
+
+    private double ticketPrice;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private int soldOutTicket;
 }

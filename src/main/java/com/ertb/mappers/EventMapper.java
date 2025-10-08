@@ -27,4 +27,6 @@ public interface EventMapper {
     List<EventModel> eventListToEventModelList(List<Event> eventList);
 
     BookedEvent eventToBookedEvent(Event event);
+
+    List<BookedEvent> eventListToBookedEventList(List<Event> eventList);
 }
