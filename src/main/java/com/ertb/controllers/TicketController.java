@@ -23,8 +23,8 @@ public class TicketController {
     @PostMapping
     public ResponseEntity<BookedEvent> addEvent(@RequestParam String eventId,
                                                 @RequestParam String userId,
-                                                @RequestParam int allocateTicket) {
-        return ResponseEntity.ok(ticketService.bookedTicket(eventId, userId, allocateTicket));
+                                                @RequestParam int bookedTicket) {
+        return ResponseEntity.ok(ticketService.bookedTicket(eventId, userId, bookedTicket));
     }
 
     @GetMapping

@@ -9,7 +9,7 @@ public class UserTicket {
 
     private String userId;
 
-    private String fistName;
+    private String firstName;
 
     private String lastName;
 

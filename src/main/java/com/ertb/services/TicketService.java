@@ -1,8 +1,8 @@
 package com.ertb.services;
 
 import com.ertb.enumerations.Status;
+import com.ertb.enumerations.TicketStatus;
 import com.ertb.exceptions.DataNotFoundException;
-import com.ertb.exceptions.DataValidationException;
 import com.ertb.mappers.EventMapper;
 import com.ertb.mappers.TicketMapper;
 import com.ertb.mappers.UserMapper;
@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,59 +40,66 @@ public class TicketService {
     private final UserMapper userMapper;
 
 
-    public BookedEvent bookedTicket(String eventId, String userId, int allocateTicket) {
+    public BookedEvent bookedTicket(String eventId, String userId, int bookedTicket) {
+        User user = userRepository.findByUserId(userId).orElseThrow(
+                () -> new DataNotFoundException("User Not Found"));
         Event event = eventRepository.findByEventId(eventId).orElseThrow(
                 () -> new DataNotFoundException("Event Not Found"));
 
-        User user = userRepository.findByUserId(userId).orElseThrow(
-                () -> new DataNotFoundException("User Not Found"));
-
-        if (event.getAvailableTicket() == event.getSoldOutTicket()) {
-            throw new DataValidationException("Sorry!, All Tickets are Sold Out");
-        }
-
-        int a = event.getAvailableTicket() -  event.getSoldOutTicket();
-        Ticket ticket = new Ticket();
-
-        if (a < allocateTicket) {
-            throw new DataValidationException("Sorry!, Only "+a+" Tickets are Available");
-        } else {
-            ticket.setEvent(event);
+        List<Ticket> ticketList = new ArrayList<>();
+        for (int ticketBook = 0; ticketBook < bookedTicket; ticketBook++) {
+            Ticket ticket = new Ticket();
             ticket.setUser(user);
-            ticket.setAllocateTicket(allocateTicket);
+            ticket.setEvent(event);
+            ticket.setExpiryTime(event.getEndDateTime());
+            ticket.setTicketStatus(TicketStatus.BOOKED);
+            ticket.setTicketNumber(event.getSoldOutTicket() + 1);
             ticketRepository.save(ticket);
-            event.setSoldOutTicket(event.getSoldOutTicket() + allocateTicket);
+            event.setSoldOutTicket(event.getSoldOutTicket() + 1);
             eventRepository.save(event);
+            ticketList.add(ticket);
         }
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
-        TicketModel ticketModel = ticketMapper.ticketToTicketModel(ticket);
-        ticketModel.setPrice(event.getTicketPrice());
-        ticketModel.setTotalPrice(event.getTicketPrice() * allocateTicket);
-        bookedEvent.setTicket(ticketModel);
+        List<TicketModel> ticketModelList = ticketMapper.ticketListToTicketModelList(ticketList);
+        bookedEvent.setTicket(ticketModelList);
+        bookedEvent.setTotalPrice(event.getTicketPrice() *  bookedTicket);
 
         return bookedEvent;
     }
 
+
+
     public UserTicket getTickets(String userId) {
 
-        List<Ticket> ticketList = ticketRepository.findByUserUserIdAndStatus(userId, Status.ACTIVE);
+        // 1️⃣ Get user info
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found with ID: " + userId));
 
-        User user = userRepository.findByUserId(userId).orElseThrow(
-                () -> new DataNotFoundException("User Not Found"));
+        // 2️⃣ Get all tickets of this user
+        List<Ticket> tickets = ticketRepository.findByUserUserIdAndTicketStatus(userId, TicketStatus.BOOKED);
+        if (tickets.isEmpty()) {
+            throw new DataNotFoundException("No tickets found for user: " + userId);
+        }
+
+        // 3️⃣ Group tickets by event
+        Map<Event, List<Ticket>> ticketsByEvent = tickets.stream()
+                .collect(Collectors.groupingBy(Ticket::getEvent));
         List<Event> eventList = new ArrayList<>();
-        ticketList.forEach(ticket -> {
-            Event event = eventRepository.findByEventId(ticket.getEvent().getEventId()).orElse(null);
+        for (Map.Entry<Event, List<Ticket>> entry : ticketsByEvent.entrySet()) {
+            Event event = entry.getKey();
             eventList.add(event);
+        }
+
+        List<BookedEvent> bookedEventList = eventMapper.eventListToBookedEventList(eventList);
+        bookedEventList.forEach(bookedEvent -> {
+            List<Ticket> ticketList = ticketRepository.findByEventEventIdAndUserUserId(bookedEvent.getEventId(), userId);
+            List<TicketModel> ticketModelList = ticketMapper.ticketListToTicketModelList(ticketList);
+            bookedEvent.setTotalPrice(bookedEvent.getTicketPrice() * ticketList.size());
+            bookedEvent.setTicket(ticketModelList);
         });
 
         UserTicket userTicket = userMapper.userToUserTicket(user);
-        List<BookedEvent> bookedEventList = eventMapper.eventListToBookedEventList(eventList);
-
-        bookedEventList.forEach(bookedEvent -> {
-            TicketModel ticketModel = ticketMapper.ticketToTicketModel(ticketRepository.findByEventEventId(bookedEvent.getEventId()));
-            bookedEvent.setTicket(ticketModel);
-        });
         userTicket.setEvent(bookedEventList);
 
         return userTicket;

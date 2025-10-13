@@ -7,6 +7,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.NullValueMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 
+import java.util.List;
+
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
 @Mapper(
@@ -17,5 +19,5 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 )
 public interface TicketMapper {
 
-    TicketModel ticketToTicketModel(Ticket ticket);
+    List<TicketModel> ticketListToTicketModelList(List<Ticket> ticketList);
 }

@@ -3,6 +3,7 @@ package com.ertb.model;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class BookedEvent {
@@ -15,5 +16,9 @@ public class BookedEvent {
 
     private LocalDateTime endDateTime;
 
-    private TicketModel ticket;
+    private double ticketPrice;
+
+    private List<TicketModel> ticket;
+
+    private double totalPrice;
 }

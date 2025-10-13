@@ -1,18 +1,13 @@
 package com.ertb.model.entities;
 
 import com.ertb.enumerations.Status;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.ertb.enumerations.TicketStatus;
+import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
+
+import java.time.LocalDateTime;
+import java.util.Random;
 
 @Entity
 @Table(name = "ticket")
@@ -33,10 +28,16 @@ public class Ticket {
     @JoinColumn(name = "event_id")
     private Event event;
 
-    @Column(name = "allocate_ticket")
-    private int allocateTicket;
+    @Column(name = "booking_time")
+    private LocalDateTime bookingTime = LocalDateTime.now();
+
+    @Column(name = "expiry_time")
+    private LocalDateTime expiryTime;
+
+    @Column(name = "ticket_number")
+    private int ticketNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private Status status = Status.ACTIVE;
+    @Column(name = "ticket_status")
+    private TicketStatus ticketStatus;
 }
