@@ -7,9 +7,5 @@ public class TicketModel {
 
     private String ticketId;
 
-    private double price;
-
-    private int allocateTicket;
-
-    private double totalPrice;
+    private int ticketNumber;
 }
