@@ -13,7 +13,8 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "events")
@@ -32,11 +33,17 @@ public class Event {
     @Column(name = "description", length = 350)
     private String description;
 
-    @Column(name = "start_date_time", nullable = false)
-    private LocalDateTime startDateTime;
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
 
-    @Column(name = "end_data_time", nullable = false)
-    private LocalDateTime endDateTime;
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
+
+    @Column(name = "end_data", nullable = false)
+    private LocalDate endDate;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;
 
     @Column(name = "venue", nullable = false)
     private String venue;

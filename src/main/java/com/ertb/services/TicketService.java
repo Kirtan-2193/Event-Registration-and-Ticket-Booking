@@ -1,6 +1,5 @@
 package com.ertb.services;
 
-import com.ertb.enumerations.Status;
 import com.ertb.enumerations.TicketStatus;
 import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.mappers.EventMapper;
@@ -16,13 +15,19 @@ import com.ertb.repositories.EventRepository;
 import com.ertb.repositories.TicketRepository;
 import com.ertb.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TicketService {
@@ -51,7 +56,8 @@ public class TicketService {
             Ticket ticket = new Ticket();
             ticket.setUser(user);
             ticket.setEvent(event);
-            ticket.setExpiryTime(event.getEndDateTime());
+            ticket.setExpiryDate(event.getEndDate());
+            ticket.setExpiryTime(event.getEndTime());
             ticket.setTicketStatus(TicketStatus.BOOKED);
             ticket.setTicketNumber(event.getSoldOutTicket() + 1);
             ticketRepository.save(ticket);
@@ -103,5 +109,20 @@ public class TicketService {
         userTicket.setEvent(bookedEventList);
 
         return userTicket;
+    }
+
+
+
+    @Scheduled(cron = "0 0/30 * * * ?")
+    public void expiredTicket() {
+        log.info("Ticket expired method triggered at "+ LocalDateTime.now());
+        List<Ticket> ticketList = ticketRepository.findByTicketStatusAndExpiryDate(TicketStatus.BOOKED, LocalDate.now());
+        ticketList.forEach(ticket -> {
+            if(ticket.getExpiryTime().isBefore(LocalTime.now()) || ticket.getExpiryTime().equals(LocalTime.now())) {
+                ticket.setTicketStatus(TicketStatus.EXPIRED);
+                ticketRepository.save(ticket);
+            }
+            log.info("ticket has been expired.");
+        });
     }
 }
