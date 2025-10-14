@@ -29,4 +29,14 @@ public class EventController {
     public ResponseEntity<List<EventModel>> getAllEvents() {
         return ResponseEntity.ok(eventService.getAllEvent());
     }
+
+    @GetMapping("/start-event")
+    public void eventSchedulerForStart() {
+        eventService.startEvent();
+    }
+
+    @GetMapping("end-event")
+    public void eventSchedulerForEnd() {
+        eventService.endEvent();
+    }
 }
