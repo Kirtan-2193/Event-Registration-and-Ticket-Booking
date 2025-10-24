@@ -1,13 +1,13 @@
 package com.ertb.services;
 
+import com.ertb.enumerations.EventStatus;
 import com.ertb.enumerations.TicketStatus;
 import com.ertb.exceptions.DataNotFoundException;
+import com.ertb.exceptions.DataValidationException;
 import com.ertb.mappers.EventMapper;
 import com.ertb.mappers.TicketMapper;
 import com.ertb.mappers.UserMapper;
-import com.ertb.model.BookedEvent;
-import com.ertb.model.TicketModel;
-import com.ertb.model.UserTicket;
+import com.ertb.model.*;
 import com.ertb.model.entities.Event;
 import com.ertb.model.entities.Ticket;
 import com.ertb.model.entities.User;
@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -43,13 +44,37 @@ public class TicketService {
     private final EventMapper eventMapper;
 
     private final UserMapper userMapper;
+    private final WebClient webClient;
 
 
     public BookedEvent bookedTicket(String eventId, String userId, int bookedTicket) {
         User user = userRepository.findByUserId(userId).orElseThrow(
                 () -> new DataNotFoundException("User Not Found"));
-        Event event = eventRepository.findByEventId(eventId).orElseThrow(
-                () -> new DataNotFoundException("Event Not Found"));
+        Event event = eventRepository.findByEventIdAndEventStatusIn(eventId, List.of(EventStatus.OPEN, EventStatus.UPCOMING)).orElseThrow(
+                () -> new DataNotFoundException("Event Not Found or Event is ended now"));
+
+        if (event.getSoldOutTicket() == event.getAvailableTicket()) {
+            throw new DataValidationException("Tickets are sold out");
+        }
+
+        int activeTicket = event.getAvailableTicket() - event.getSoldOutTicket();
+        if (activeTicket < bookedTicket) {
+            throw new DataValidationException("Only " + activeTicket + " tickets are available");
+        }
+
+        double totalAmount = event.getTicketPrice() * bookedTicket;
+        PaymentRequest paymentRequest = new PaymentRequest(totalAmount, userId, "Ticket purchase for " + event.getEventName());
+
+        PaymentResponse paymentResponse = webClient.post()
+                .uri("/mock-payment/pay")
+                .bodyValue(paymentRequest)
+                .retrieve()
+                .bodyToMono(PaymentResponse.class)
+                .block();
+
+        if (paymentResponse == null || !paymentResponse.isSuccess()) {
+            throw new DataValidationException("Payment failed");
+        }
 
         List<Ticket> ticketList = new ArrayList<>();
         for (int ticketBook = 0; ticketBook < bookedTicket; ticketBook++) {
@@ -67,9 +92,8 @@ public class TicketService {
         }
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
-        List<TicketModel> ticketModelList = ticketMapper.ticketListToTicketModelList(ticketList);
-        bookedEvent.setTicket(ticketModelList);
-        bookedEvent.setTotalPrice(event.getTicketPrice() *  bookedTicket);
+        bookedEvent.setTicket(ticketMapper.ticketListToTicketModelList(ticketList));
+        bookedEvent.setTotalPrice(totalAmount);
 
         return bookedEvent;
     }

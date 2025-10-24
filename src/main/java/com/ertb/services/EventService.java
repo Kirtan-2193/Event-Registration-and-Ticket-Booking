@@ -1,6 +1,7 @@
 package com.ertb.services;
 
 import com.ertb.enumerations.EventStatus;
+import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.mappers.EventMapper;
 import com.ertb.model.EventModel;
 import com.ertb.model.entities.Event;
@@ -85,5 +86,18 @@ public class EventService {
         List<EventModel> eventModelList = eventMapper.eventListToEventModelList(eventList);
 
         return eventModelList;
+    }
+
+
+
+    public EventModel updateEvent(EventModel eventModel, String eventId) {
+        Event event = eventRepository.findByEventId(eventId).orElseThrow(
+                () -> new DataNotFoundException("Event Not found on this Id:- "+eventId));
+
+        eventMapper.updateEventFromEventModel(eventModel, event);
+        event.setEventId(eventId);
+        Event saveEvent = eventRepository.save(event);
+
+        return eventMapper.eventToEventModel(saveEvent);
     }
 }
