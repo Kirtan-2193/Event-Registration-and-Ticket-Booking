@@ -3,10 +3,7 @@ package com.ertb.mappers;
 import com.ertb.model.BookedEvent;
 import com.ertb.model.EventModel;
 import com.ertb.model.entities.Event;
-import org.mapstruct.Builder;
-import org.mapstruct.Mapper;
-import org.mapstruct.NullValueMappingStrategy;
-import org.mapstruct.ReportingPolicy;
+import org.mapstruct.*;
 
 import java.util.List;
 
@@ -29,4 +26,6 @@ public interface EventMapper {
     BookedEvent eventToBookedEvent(Event event);
 
     List<BookedEvent> eventListToBookedEventList(List<Event> eventList);
+
+    void updateEventFromEventModel(EventModel eventModel, @MappingTarget Event event);
 }

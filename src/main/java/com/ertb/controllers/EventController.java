@@ -6,8 +6,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -30,7 +32,14 @@ public class EventController {
         return ResponseEntity.ok(eventService.getAllEvent());
     }
 
-    @GetMapping("/start-event")
+
+    @PutMapping
+    public ResponseEntity<EventModel> updateEvent(@RequestBody EventModel eventModel,
+                                                  @RequestParam String eventId) {
+        return ResponseEntity.ok(eventService.updateEvent(eventModel, eventId));
+    }
+
+    /*@GetMapping("/start-event")
     public void eventSchedulerForStart() {
         eventService.startEvent();
     }
@@ -38,5 +47,5 @@ public class EventController {
     @GetMapping("end-event")
     public void eventSchedulerForEnd() {
         eventService.endEvent();
-    }
+    }*/
 }
