@@ -1,17 +1,21 @@
 package com.ertb.services;
 
 import com.ertb.enumerations.EventStatus;
+import com.ertb.enumerations.PaymentStatus;
 import com.ertb.enumerations.TicketStatus;
 import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.exceptions.DataValidationException;
 import com.ertb.mappers.EventMapper;
+import com.ertb.mappers.PaymentMapper;
 import com.ertb.mappers.TicketMapper;
 import com.ertb.mappers.UserMapper;
 import com.ertb.model.*;
 import com.ertb.model.entities.Event;
+import com.ertb.model.entities.Payment;
 import com.ertb.model.entities.Ticket;
 import com.ertb.model.entities.User;
 import com.ertb.repositories.EventRepository;
+import com.ertb.repositories.PaymentRepository;
 import com.ertb.repositories.TicketRepository;
 import com.ertb.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,15 +43,20 @@ public class TicketService {
 
     private final UserRepository userRepository;
 
+    private final PaymentRepository paymentRepository;
+
     private final TicketMapper ticketMapper;
 
     private final EventMapper eventMapper;
 
     private final UserMapper userMapper;
-    private final WebClient webClient;
+
+    private final PaymentMapper paymentMapper;
+
+    private final PaymentService paymentService;
 
 
-    public BookedEvent bookedTicket(String eventId, String userId, int bookedTicket) {
+    public BookedEvent bookedTicket(String eventId, String userId, int bookedTicket, Long accountNumber) {
         User user = userRepository.findByUserId(userId).orElseThrow(
                 () -> new DataNotFoundException("User Not Found"));
         Event event = eventRepository.findByEventIdAndEventStatusIn(eventId, List.of(EventStatus.OPEN, EventStatus.UPCOMING)).orElseThrow(
@@ -63,36 +72,26 @@ public class TicketService {
         }
 
         double totalAmount = event.getTicketPrice() * bookedTicket;
-        PaymentRequest paymentRequest = new PaymentRequest(totalAmount, userId, "Ticket purchase for " + event.getEventName());
+        PaymentClientModel paymentClientModel = paymentService.makePayment(accountNumber, totalAmount);
 
-        PaymentResponse paymentResponse = webClient.post()
-                .uri("/mock-payment/pay")
-                .bodyValue(paymentRequest)
-                .retrieve()
-                .bodyToMono(PaymentResponse.class)
-                .block();
-
-        if (paymentResponse == null || !paymentResponse.isSuccess()) {
-            throw new DataValidationException("Payment failed");
+        if (!"SUCCESS".equals(paymentClientModel.getPaymentStatus())){
+            throw new DataValidationException("Payment Failed");
         }
 
-        List<Ticket> ticketList = new ArrayList<>();
-        for (int ticketBook = 0; ticketBook < bookedTicket; ticketBook++) {
-            Ticket ticket = new Ticket();
-            ticket.setUser(user);
-            ticket.setEvent(event);
-            ticket.setExpiryDate(event.getEndDate());
-            ticket.setExpiryTime(event.getEndTime());
-            ticket.setTicketStatus(TicketStatus.BOOKED);
-            ticket.setTicketNumber(event.getSoldOutTicket() + 1);
-            ticketRepository.save(ticket);
-            event.setSoldOutTicket(event.getSoldOutTicket() + 1);
-            eventRepository.save(event);
-            ticketList.add(ticket);
-        }
+        PaymentResponse paymentResponse = new PaymentResponse();
+        paymentResponse.setTransactionReferenceId(paymentClientModel.getPaymentId());
+        paymentResponse.setAmount(totalAmount);
+        paymentResponse.setPaymentStatus(paymentClientModel.getPaymentStatus());
+        paymentResponse.setMessage("Payment for "+event.getEventName());
+
+        Payment payment = paymentMapper.paymentResponseToPayment(paymentResponse);
+        payment.setUser(user);
+        paymentRepository.save(payment);
+
+        List<TicketModel> ticketModelList = addTicket(user, event, bookedTicket);
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
-        bookedEvent.setTicket(ticketMapper.ticketListToTicketModelList(ticketList));
+        bookedEvent.setTicket(ticketModelList);
         bookedEvent.setTotalPrice(totalAmount);
 
         return bookedEvent;
@@ -148,5 +147,24 @@ public class TicketService {
             }
             log.info("ticket has been expired.");
         });
+    }
+
+
+    public List<TicketModel> addTicket(User user, Event event, int bookedTicket) {
+        List<Ticket> ticketList = new ArrayList<>();
+        for (int ticketBook = 0; ticketBook < bookedTicket; ticketBook++) {
+            Ticket ticket = new Ticket();
+            ticket.setUser(user);
+            ticket.setEvent(event);
+            ticket.setExpiryDate(event.getEndDate());
+            ticket.setExpiryTime(event.getEndTime());
+            ticket.setTicketStatus(TicketStatus.BOOKED);
+            ticket.setTicketNumber(event.getSoldOutTicket() + 1);
+            ticketRepository.save(ticket);
+            event.setSoldOutTicket(event.getSoldOutTicket() + 1);
+            eventRepository.save(event);
+            ticketList.add(ticket);
+        }
+        return ticketMapper.ticketListToTicketModelList(ticketList);
     }
 }

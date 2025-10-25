@@ -1,17 +1,16 @@
 package com.ertb.model;
 
+import com.ertb.enumerations.PaymentStatus;
 import lombok.Data;
 
 @Data
 public class PaymentResponse {
 
-    private String transactionId;
+    private String transactionReferenceId;
 
     private double amount;
 
-    private String userId;
-
-    private boolean success;
+    private String paymentStatus;
 
     private String message;
 }
