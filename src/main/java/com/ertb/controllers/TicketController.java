@@ -22,9 +22,10 @@ public class TicketController {
 
     @PostMapping
     public ResponseEntity<BookedEvent> bookTicket(@RequestParam String eventId,
-                                                @RequestParam String userId,
-                                                @RequestParam int bookedTicket) {
-        return ResponseEntity.ok(ticketService.bookedTicket(eventId, userId, bookedTicket));
+                                                  @RequestParam String userId,
+                                                  @RequestParam int bookedTicket,
+                                                  @RequestParam Long accountNumber) {
+        return ResponseEntity.ok(ticketService.bookedTicket(eventId, userId, bookedTicket, accountNumber));
     }
 
     @GetMapping
