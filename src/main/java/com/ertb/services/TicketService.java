@@ -56,10 +56,10 @@ public class TicketService {
     private final PaymentService paymentService;
 
 
-    public BookedEvent bookedTicket(String eventId, String userId, int bookedTicket, Long accountNumber) {
-        User user = userRepository.findByUserId(userId).orElseThrow(
+    public BookedEvent bookedTicket(TicketRequest ticketRequest) {
+        User user = userRepository.findByUserId(ticketRequest.getUserId()).orElseThrow(
                 () -> new DataNotFoundException("User Not Found"));
-        Event event = eventRepository.findByEventIdAndEventStatusIn(eventId, List.of(EventStatus.OPEN, EventStatus.UPCOMING)).orElseThrow(
+        Event event = eventRepository.findByEventIdAndEventStatusIn(ticketRequest.getEventId(), List.of(EventStatus.OPEN, EventStatus.UPCOMING)).orElseThrow(
                 () -> new DataNotFoundException("Event Not Found or Event is ended now"));
 
         if (event.getSoldOutTicket() == event.getAvailableTicket()) {
@@ -67,12 +67,12 @@ public class TicketService {
         }
 
         int activeTicket = event.getAvailableTicket() - event.getSoldOutTicket();
-        if (activeTicket < bookedTicket) {
+        if (activeTicket < ticketRequest.getBookedTicket()) {
             throw new DataValidationException("Only " + activeTicket + " tickets are available");
         }
 
-        double totalAmount = event.getTicketPrice() * bookedTicket;
-        PaymentClientModel paymentClientModel = paymentService.makePayment(accountNumber, totalAmount);
+        double totalAmount = event.getTicketPrice() * ticketRequest.getBookedTicket();
+        PaymentClientModel paymentClientModel = paymentService.makePayment(ticketRequest.getAccountNumber(), totalAmount);
 
         if (!"SUCCESS".equals(paymentClientModel.getPaymentStatus())){
             throw new DataValidationException("Payment Failed");
@@ -88,7 +88,7 @@ public class TicketService {
         payment.setUser(user);
         paymentRepository.save(payment);
 
-        List<TicketModel> ticketModelList = addTicket(user, event, bookedTicket);
+        List<TicketModel> ticketModelList = addTicket(user, event, ticketRequest.getBookedTicket());
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
         bookedEvent.setTicket(ticketModelList);
