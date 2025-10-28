@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "payments")
 @Data
@@ -21,6 +23,9 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status")
     private PaymentStatus paymentStatus;
+
+    @Column(name = "payment_at")
+    private LocalDateTime paymentAt = LocalDateTime.now();
 
     @Column(name = "transaction_reference_id")
     private String transactionReferenceId;
