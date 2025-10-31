@@ -86,15 +86,49 @@ public class TicketService {
 
         Payment payment = paymentMapper.paymentResponseToPayment(paymentResponse);
         payment.setUser(user);
+        payment.setEvent(event);
         paymentRepository.save(payment);
 
-        List<TicketModel> ticketModelList = addTicket(user, event, ticketRequest.getBookedTicket());
+        List<TicketModel> ticketModelList = addTicket(user, event, ticketRequest.getBookedTicket(), TicketStatus.BOOKED);
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
         bookedEvent.setTicket(ticketModelList);
         bookedEvent.setTotalPrice(totalAmount);
 
         return bookedEvent;
+    }
+
+
+
+    public MessageModel refundTicket(TicketRequest ticketRequest) {
+        MessageModel messageModel = new MessageModel();
+
+        Payment payment = paymentRepository.findByUserUserIdAndEventEventId(ticketRequest.getUserId(), ticketRequest.getEventId());
+        PaymentClientModel paymentClientModel = paymentService.refundPayment(payment.getTransactionReferenceId());
+        if (!"REFUNDED".equals(paymentClientModel.getPaymentStatus())) {
+            throw new DataValidationException("Refund is Failed");
+        }
+        payment.setPaymentStatus(PaymentStatus.REFUNDED);
+        Payment savePayment = paymentRepository.save(payment);
+
+        if (savePayment.getPaymentStatus().equals(PaymentStatus.REFUNDED)) {
+            List<Ticket> ticketList = ticketRepository.findByEventEventIdAndUserUserIdAndTicketStatus(
+                    ticketRequest.getEventId(), ticketRequest.getUserId(), TicketStatus.BOOKED);
+            ticketList.forEach(ticket -> {
+                ticket.setTicketStatus(TicketStatus.CANCELLED);
+                ticketRepository.save(ticket);
+            });
+            int cancelBookTicket = ticketList.size();
+
+            Event event = eventRepository.findByEventId(ticketRequest.getEventId()).orElse(null);
+            event.setSoldOutTicket(event.getSoldOutTicket() - cancelBookTicket);
+            eventRepository.save(event);
+
+            messageModel.setMessage(ticketList.size()+" Tickets are Successfully cancelled");
+        } else {
+            messageModel.setMessage("Tickets are not cancelled");
+        }
+        return messageModel;
     }
 
 
@@ -150,7 +184,7 @@ public class TicketService {
     }
 
 
-    public List<TicketModel> addTicket(User user, Event event, int bookedTicket) {
+    public List<TicketModel> addTicket(User user, Event event, int bookedTicket, TicketStatus status) {
         List<Ticket> ticketList = new ArrayList<>();
         for (int ticketBook = 0; ticketBook < bookedTicket; ticketBook++) {
             Ticket ticket = new Ticket();
@@ -158,7 +192,7 @@ public class TicketService {
             ticket.setEvent(event);
             ticket.setExpiryDate(event.getEndDate());
             ticket.setExpiryTime(event.getEndTime());
-            ticket.setTicketStatus(TicketStatus.BOOKED);
+            ticket.setTicketStatus(status);
             ticket.setTicketNumber(event.getSoldOutTicket() + 1);
             ticketRepository.save(ticket);
             event.setSoldOutTicket(event.getSoldOutTicket() + 1);
