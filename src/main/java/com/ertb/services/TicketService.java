@@ -135,17 +135,17 @@ public class TicketService {
 
     public UserTicket getTickets(String userId) {
 
-        // 1️⃣ Get user info
+        // Get user info
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new DataNotFoundException("User not found with ID: " + userId));
 
-        // 2️⃣ Get all tickets of this user
+        // Get all tickets of this user
         List<Ticket> tickets = ticketRepository.findByUserUserIdAndTicketStatus(userId, TicketStatus.BOOKED);
         if (tickets.isEmpty()) {
             throw new DataNotFoundException("No tickets found for user: " + userId);
         }
 
-        // 3️⃣ Group tickets by event
+        // Group tickets by event
         Map<Event, List<Ticket>> ticketsByEvent = tickets.stream()
                 .collect(Collectors.groupingBy(Ticket::getEvent));
         List<Event> eventList = new ArrayList<>();

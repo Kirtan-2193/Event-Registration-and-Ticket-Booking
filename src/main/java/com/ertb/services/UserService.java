@@ -15,6 +15,10 @@ import com.ertb.repositories.RoleRepository;
 import com.ertb.repositories.UserRepository;
 import com.ertb.repositories.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +39,31 @@ public class UserService {
 
     private final UserMapper userMapper;
 
+    private final AuthenticationManager authenticationManager;
+
+    private final JWTService jwtService;
+
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+
+
+
+    public String verifyUser(UserModel userModel) {
+
+        boolean tokenValid = false;
+
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                userModel.getEmail(),
+                userModel.getPassword()));
+
+        if (authentication.isAuthenticated()) {
+            tokenValid = true;
+        }
+        if (!tokenValid) {
+            new DataValidationException("Please Enter Correct Email and Password");
+        }
+
+        return jwtService.generateToken(userModel.getEmail());
+    }
 
 
     @Transactional
@@ -45,7 +74,7 @@ public class UserService {
         }
 
         User user = userMapper.userModelToUser(userModel);
-//        user.setPassword(encoder.encode(userModel.getPassword()));
+        user.setPassword(encoder.encode(userModel.getPassword()));
         user = userRepository.save(user);
 
         List<String> roleIdsFromModel = userModel.getRoles().stream().map(r -> r.getRoleId()).toList();

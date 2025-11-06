@@ -24,6 +24,11 @@ public class UserController {
 
     private final UserService userService;
 
+    @PostMapping("/login")
+    public String login(@RequestBody UserModel userModel) {
+        return userService.verifyUser(userModel);
+    }
+
     @PostMapping
     public ResponseEntity<UserModel> addUser(@RequestBody UserModel userModel) {
         return ResponseEntity.ok(userService.insertUser(userModel));
