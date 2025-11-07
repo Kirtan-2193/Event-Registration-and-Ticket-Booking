@@ -40,6 +40,9 @@ public class User {
     @Column(name = "status")
     private Status status = Status.ACTIVE;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<UserRole> userRoles;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments;
 }

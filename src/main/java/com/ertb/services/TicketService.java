@@ -56,9 +56,8 @@ public class TicketService {
     private final PaymentService paymentService;
 
 
-    public BookedEvent bookedTicket(TicketRequest ticketRequest) {
-        User user = userRepository.findByUserId(ticketRequest.getUserId()).orElseThrow(
-                () -> new DataNotFoundException("User Not Found"));
+    public BookedEvent bookedTicket(TicketRequest ticketRequest, String email) {
+        User user = userRepository.findByEmail(email);
         Event event = eventRepository.findByEventIdAndEventStatusIn(ticketRequest.getEventId(), List.of(EventStatus.OPEN, EventStatus.UPCOMING)).orElseThrow(
                 () -> new DataNotFoundException("Event Not Found or Event is ended now"));
 
@@ -133,19 +132,18 @@ public class TicketService {
 
 
 
-    public UserTicket getTickets(String userId) {
+    public UserTicket getTickets(String email) {
 
-        // 1️⃣ Get user info
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new DataNotFoundException("User not found with ID: " + userId));
+        // Get user info
+        User user = userRepository.findByEmail(email);
 
-        // 2️⃣ Get all tickets of this user
-        List<Ticket> tickets = ticketRepository.findByUserUserIdAndTicketStatus(userId, TicketStatus.BOOKED);
+        // Get all tickets of this user
+        List<Ticket> tickets = ticketRepository.findByUserUserIdAndTicketStatus(user.getUserId(), TicketStatus.BOOKED);
         if (tickets.isEmpty()) {
-            throw new DataNotFoundException("No tickets found for user: " + userId);
+            throw new DataNotFoundException("No tickets found for user: " + user.getUserId());
         }
 
-        // 3️⃣ Group tickets by event
+        // Group tickets by event
         Map<Event, List<Ticket>> ticketsByEvent = tickets.stream()
                 .collect(Collectors.groupingBy(Ticket::getEvent));
         List<Event> eventList = new ArrayList<>();
@@ -156,7 +154,7 @@ public class TicketService {
 
         List<BookedEvent> bookedEventList = eventMapper.eventListToBookedEventList(eventList);
         bookedEventList.forEach(bookedEvent -> {
-            List<Ticket> ticketList = ticketRepository.findByEventEventIdAndUserUserId(bookedEvent.getEventId(), userId);
+            List<Ticket> ticketList = ticketRepository.findByEventEventIdAndUserUserId(bookedEvent.getEventId(), user.getUserId());
             List<TicketModel> ticketModelList = ticketMapper.ticketListToTicketModelList(ticketList);
             bookedEvent.setTotalPrice(bookedEvent.getTicketPrice() * ticketList.size());
             bookedEvent.setTicket(ticketModelList);
