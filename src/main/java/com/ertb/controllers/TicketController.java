@@ -43,4 +43,9 @@ public class TicketController {
     public ResponseEntity<MessageModel> cancelTickets(@RequestBody TicketRequest ticketRequest) {
         return ResponseEntity.ok(ticketService.refundTicket(ticketRequest));
     }
+
+    @PutMapping("/check-in")
+    public ResponseEntity<MessageModel> ticketCheck(@RequestBody TicketRequest ticketRequest) {
+        return ResponseEntity.ok(ticketService.ticketChecking(ticketRequest));
+    }
 }

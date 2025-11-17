@@ -33,7 +33,8 @@ public class SecurityConfig {
 
         return http.csrf(customizer -> customizer.disable())
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/user/login").permitAll()
+                        .requestMatchers("/user/login", "/ticket/check-in"/*,
+                                            "/event/start-event", "/event/end-event"*/).permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session ->

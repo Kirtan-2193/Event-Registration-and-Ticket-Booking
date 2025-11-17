@@ -11,5 +11,7 @@ public class TicketRequest {
 
     private int bookedTicket;
 
+    private int ticketNumber;
+
     private Long accountNumber;
 }

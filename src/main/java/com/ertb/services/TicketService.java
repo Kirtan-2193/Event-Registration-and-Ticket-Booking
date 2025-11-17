@@ -5,11 +5,18 @@ import com.ertb.enumerations.PaymentStatus;
 import com.ertb.enumerations.TicketStatus;
 import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.exceptions.DataValidationException;
+import com.ertb.exceptions.PaymentValidationException;
 import com.ertb.mappers.EventMapper;
 import com.ertb.mappers.PaymentMapper;
 import com.ertb.mappers.TicketMapper;
 import com.ertb.mappers.UserMapper;
-import com.ertb.model.*;
+import com.ertb.model.BookedEvent;
+import com.ertb.model.MessageModel;
+import com.ertb.model.PaymentClientModel;
+import com.ertb.model.PaymentResponse;
+import com.ertb.model.TicketModel;
+import com.ertb.model.TicketRequest;
+import com.ertb.model.UserTicket;
 import com.ertb.model.entities.Event;
 import com.ertb.model.entities.Payment;
 import com.ertb.model.entities.Ticket;
@@ -22,7 +29,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -74,7 +80,7 @@ public class TicketService {
         PaymentClientModel paymentClientModel = paymentService.makePayment(ticketRequest.getAccountNumber(), totalAmount);
 
         if (!"SUCCESS".equals(paymentClientModel.getPaymentStatus())){
-            throw new DataValidationException("Payment Failed");
+            throw new PaymentValidationException("Payment Failed");
         }
 
         PaymentResponse paymentResponse = new PaymentResponse();
@@ -198,5 +204,20 @@ public class TicketService {
             ticketList.add(ticket);
         }
         return ticketMapper.ticketListToTicketModelList(ticketList);
+    }
+
+    public MessageModel ticketChecking(TicketRequest ticketRequest) {
+        MessageModel messageModel = new MessageModel();
+        Ticket ticket = ticketRepository.findByTicketNumberAndEventEventIdAndTicketStatus(ticketRequest.getTicketNumber(),
+                                                                            ticketRequest.getEventId(),
+                                                                            TicketStatus.BOOKED);
+        if(ticket == null) {
+            throw new DataNotFoundException("Ticket not found or not booked");
+        }
+
+        ticket.setTicketStatus(TicketStatus.USED);
+        ticketRepository.save(ticket);
+        messageModel.setMessage("Allow to check in");
+        return messageModel;
     }
 }
