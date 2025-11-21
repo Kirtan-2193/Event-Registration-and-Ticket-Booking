@@ -94,10 +94,10 @@ public class TicketService {
         payment.setEvent(event);
         paymentRepository.save(payment);
 
-        List<TicketModel> ticketModelList = addTicket(user, event, ticketRequest.getBookedTicket(), TicketStatus.BOOKED);
+        TicketModel ticketModel = addTicket(user, event, ticketRequest.getBookedTicket(), TicketStatus.BOOKED);
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
-        bookedEvent.setTicket(ticketModelList);
+        bookedEvent.setTicket(ticketModel);
         bookedEvent.setTotalPrice(totalAmount);
 
         return bookedEvent;
@@ -160,10 +160,10 @@ public class TicketService {
 
         List<BookedEvent> bookedEventList = eventMapper.eventListToBookedEventList(eventList);
         bookedEventList.forEach(bookedEvent -> {
-            List<Ticket> ticketList = ticketRepository.findByEventEventIdAndUserUserId(bookedEvent.getEventId(), user.getUserId());
-            List<TicketModel> ticketModelList = ticketMapper.ticketListToTicketModelList(ticketList);
-            bookedEvent.setTotalPrice(bookedEvent.getTicketPrice() * ticketList.size());
-            bookedEvent.setTicket(ticketModelList);
+             Ticket ticket = ticketRepository.findByEventEventIdAndUserUserId(bookedEvent.getEventId(), user.getUserId());
+             TicketModel ticketModel = ticketMapper.ticketToTicketModel(ticket);
+            bookedEvent.setTotalPrice(bookedEvent.getTicketPrice() * ticket.getAllocatedTicket());
+            bookedEvent.setTicket(ticketModel);
         });
 
         UserTicket userTicket = userMapper.userToUserTicket(user);
@@ -188,27 +188,25 @@ public class TicketService {
     }
 
 
-    public List<TicketModel> addTicket(User user, Event event, int bookedTicket, TicketStatus status) {
-        List<Ticket> ticketList = new ArrayList<>();
-        for (int ticketBook = 0; ticketBook < bookedTicket; ticketBook++) {
+    public TicketModel addTicket(User user, Event event, int bookedTicket, TicketStatus status) {
+
             Ticket ticket = new Ticket();
             ticket.setUser(user);
             ticket.setEvent(event);
             ticket.setExpiryDate(event.getEndDate());
             ticket.setExpiryTime(event.getEndTime());
             ticket.setTicketStatus(status);
-            ticket.setTicketNumber(event.getSoldOutTicket() + 1);
+            ticket.setAllocatedTicket(bookedTicket);
             ticketRepository.save(ticket);
             event.setSoldOutTicket(event.getSoldOutTicket() + 1);
             eventRepository.save(event);
-            ticketList.add(ticket);
-        }
-        return ticketMapper.ticketListToTicketModelList(ticketList);
+
+        return ticketMapper.ticketToTicketModel(ticket);
     }
 
     public MessageModel ticketChecking(TicketRequest ticketRequest) {
         MessageModel messageModel = new MessageModel();
-        Ticket ticket = ticketRepository.findByTicketNumberAndEventEventIdAndTicketStatus(ticketRequest.getTicketNumber(),
+        /*Ticket ticket = ticketRepository.findByTicketNumberAndEventEventIdAndTicketStatus(ticketRequest.getTicketNumber(),
                                                                             ticketRequest.getEventId(),
                                                                             TicketStatus.BOOKED);
         if(ticket == null) {
@@ -216,7 +214,7 @@ public class TicketService {
         }
 
         ticket.setTicketStatus(TicketStatus.USED);
-        ticketRepository.save(ticket);
+        ticketRepository.save(ticket);*/
         messageModel.setMessage("Allow to check in");
         return messageModel;
     }

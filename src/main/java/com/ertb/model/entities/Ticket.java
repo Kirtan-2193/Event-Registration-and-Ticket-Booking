@@ -48,8 +48,8 @@ public class Ticket {
     @Column(name = "expiry_time")
     private LocalTime expiryTime;
 
-    @Column(name = "ticket_number")
-    private int ticketNumber;
+    @Column(name = "allocated_ticket")
+    private int allocatedTicket;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "ticket_status")
