@@ -53,7 +53,7 @@ public class EventService {
 
         EventModel returnEventModel = eventMapper.eventToEventModel(event);
 
-        // 🔥 Save event in Redis for 2 days
+        // Save event in Redis for 2 days
         String redisKey = EVENT_KEY_PREFIX + event.getEventId();
         redisTemplate.opsForValue().set(redisKey, returnEventModel, Duration.ofDays(2));
 
@@ -101,7 +101,7 @@ public class EventService {
         List<EventModel> cachedEventList = (List<EventModel>) redisTemplate.opsForValue().get(redisKey);
 
         if (cachedEventList != null) {
-            System.out.println("Fetching Events from Redis Cache");
+            log.info("Fetching Events from Redis Cache");
             return cachedEventList;
         }
 

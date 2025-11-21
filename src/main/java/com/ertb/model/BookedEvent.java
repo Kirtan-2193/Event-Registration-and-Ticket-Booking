@@ -24,7 +24,7 @@ public class BookedEvent {
 
     private double ticketPrice;
 
-    private List<TicketModel> ticket;
+    private TicketModel ticket;
 
     private double totalPrice;
 }

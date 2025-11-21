@@ -19,5 +19,5 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 )
 public interface TicketMapper {
 
-    List<TicketModel> ticketListToTicketModelList(List<Ticket> ticketList);
+     TicketModel ticketToTicketModel(Ticket ticket);
 }

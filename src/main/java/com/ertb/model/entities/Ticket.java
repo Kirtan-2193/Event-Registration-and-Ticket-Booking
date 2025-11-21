@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
@@ -48,10 +49,14 @@ public class Ticket {
     @Column(name = "expiry_time")
     private LocalTime expiryTime;
 
-    @Column(name = "ticket_number")
-    private int ticketNumber;
+    @Column(name = "allocated_ticket")
+    private int allocatedTicket;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "ticket_status")
     private TicketStatus ticketStatus;
+
+    @OneToOne
+    @JoinColumn(name = "payment_id")
+    private Payment payment;
 }

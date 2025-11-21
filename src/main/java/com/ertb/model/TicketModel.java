@@ -10,7 +10,7 @@ public class TicketModel {
 
     private String ticketId;
 
-    private int ticketNumber;
+    private int allocatedTicket;
 
     private LocalDate expiryDate;
 
