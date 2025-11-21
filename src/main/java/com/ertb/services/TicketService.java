@@ -91,7 +91,6 @@ public class TicketService {
 
         Payment payment = paymentMapper.paymentResponseToPayment(paymentResponse);
         payment.setUser(user);
-        payment.setEvent(event);
         paymentRepository.save(payment);
 
         TicketModel ticketModel = addTicket(user, event, ticketRequest.getBookedTicket(), TicketStatus.BOOKED);
@@ -108,7 +107,12 @@ public class TicketService {
     public MessageModel refundTicket(TicketRequest ticketRequest) {
         MessageModel messageModel = new MessageModel();
 
-        Payment payment = paymentRepository.findByUserUserIdAndEventEventId(ticketRequest.getUserId(), ticketRequest.getEventId());
+        Ticket ticket = ticketRepository.findByTicketId(ticketRequest.getTicketId());
+        if (ticket == null) {
+            throw new DataNotFoundException("Ticket Not Found");
+        }
+
+        Payment payment = paymentRepository.findByPaymentId(ticket.getPayment().getPaymentId());
         PaymentClientModel paymentClientModel = paymentService.refundPayment(payment.getTransactionReferenceId());
         if (!"REFUNDED".equals(paymentClientModel.getPaymentStatus())) {
             throw new DataValidationException("Refund is Failed");
@@ -116,13 +120,10 @@ public class TicketService {
         payment.setPaymentStatus(PaymentStatus.REFUNDED);
         Payment savePayment = paymentRepository.save(payment);
 
-        if (savePayment.getPaymentStatus().equals(PaymentStatus.REFUNDED)) {
-            List<Ticket> ticketList = ticketRepository.findByEventEventIdAndUserUserIdAndTicketStatus(
-                    ticketRequest.getEventId(), ticketRequest.getUserId(), TicketStatus.BOOKED);
-            ticketList.forEach(ticket -> {
-                ticket.setTicketStatus(TicketStatus.CANCELLED);
-                ticketRepository.save(ticket);
-            });
+        /*if (savePayment.getPaymentStatus().equals(PaymentStatus.REFUNDED)) {
+            ticket.setTicketStatus(TicketStatus.CANCELLED);
+            ticketRepository.save(ticket);
+
             int cancelBookTicket = ticketList.size();
 
             Event event = eventRepository.findByEventId(ticketRequest.getEventId()).orElse(null);
@@ -132,7 +133,7 @@ public class TicketService {
             messageModel.setMessage(ticketList.size()+" Tickets are Successfully cancelled");
         } else {
             messageModel.setMessage("Tickets are not cancelled");
-        }
+        }*/
         return messageModel;
     }
 
