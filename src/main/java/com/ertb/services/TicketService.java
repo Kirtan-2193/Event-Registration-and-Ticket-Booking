@@ -206,16 +206,18 @@ public class TicketService {
 
     public MessageModel ticketChecking(TicketRequest ticketRequest) {
         MessageModel messageModel = new MessageModel();
-        /*Ticket ticket = ticketRepository.findByTicketNumberAndEventEventIdAndTicketStatus(ticketRequest.getTicketNumber(),
-                                                                            ticketRequest.getEventId(),
-                                                                            TicketStatus.BOOKED);
-        if(ticket == null) {
-            throw new DataNotFoundException("Ticket not found or not booked");
+        Ticket ticket = ticketRepository.findByTicketId(ticketRequest.getTicketId());
+        if (ticket == null){
+            throw new DataValidationException("Ticket Not Available");
         }
 
-        ticket.setTicketStatus(TicketStatus.USED);
-        ticketRepository.save(ticket);*/
-        messageModel.setMessage("Allow to check in");
+        if (!ticket.getTicketStatus().equals(TicketStatus.BOOKED)){
+            throw new DataValidationException("Sorry ! Your not check-in deu to, Ticket is " +ticket.getTicketStatus()+ ".");
+        } else {
+            ticket.setTicketStatus(TicketStatus.USED);
+            ticketRepository.save(ticket);
+            messageModel.setMessage("Allow to check in");
+        }
         return messageModel;
     }
 }
