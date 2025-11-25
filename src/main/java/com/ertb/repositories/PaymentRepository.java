@@ -7,7 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, String> {
 
-    Payment findByUserUserIdAndEventEventId(String userId, String eventId);
-
     Payment findByPaymentId(String paymentId);
 }

@@ -91,9 +91,9 @@ public class TicketService {
 
         Payment payment = paymentMapper.paymentResponseToPayment(paymentResponse);
         payment.setUser(user);
-        paymentRepository.save(payment);
+        Payment savePayment = paymentRepository.save(payment);
 
-        TicketModel ticketModel = addTicket(user, event, ticketRequest.getBookedTicket(), TicketStatus.BOOKED);
+        TicketModel ticketModel = addTicket(user, event, savePayment, ticketRequest.getBookedTicket(), TicketStatus.BOOKED);
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
         bookedEvent.setTicket(ticketModel);
@@ -120,20 +120,18 @@ public class TicketService {
         payment.setPaymentStatus(PaymentStatus.REFUNDED);
         Payment savePayment = paymentRepository.save(payment);
 
-        /*if (savePayment.getPaymentStatus().equals(PaymentStatus.REFUNDED)) {
+        if (savePayment.getPaymentStatus().equals(PaymentStatus.REFUNDED)) {
             ticket.setTicketStatus(TicketStatus.CANCELLED);
             ticketRepository.save(ticket);
 
-            int cancelBookTicket = ticketList.size();
-
-            Event event = eventRepository.findByEventId(ticketRequest.getEventId()).orElse(null);
-            event.setSoldOutTicket(event.getSoldOutTicket() - cancelBookTicket);
+            Event event = ticket.getEvent();
+            event.setSoldOutTicket(event.getSoldOutTicket() - ticket.getAllocatedTicket());
             eventRepository.save(event);
 
-            messageModel.setMessage(ticketList.size()+" Tickets are Successfully cancelled");
+            messageModel.setMessage("Your Tickets are Successfully cancelled");
         } else {
             messageModel.setMessage("Tickets are not cancelled");
-        }*/
+        }
         return messageModel;
     }
 
@@ -189,11 +187,12 @@ public class TicketService {
     }
 
 
-    public TicketModel addTicket(User user, Event event, int bookedTicket, TicketStatus status) {
+    public TicketModel addTicket(User user, Event event, Payment payment, int bookedTicket, TicketStatus status) {
 
             Ticket ticket = new Ticket();
             ticket.setUser(user);
             ticket.setEvent(event);
+            ticket.setPayment(payment);
             ticket.setExpiryDate(event.getEndDate());
             ticket.setExpiryTime(event.getEndTime());
             ticket.setTicketStatus(status);
