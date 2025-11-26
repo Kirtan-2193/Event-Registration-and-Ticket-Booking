@@ -15,7 +15,7 @@ public interface TicketRepository extends JpaRepository<Ticket, String> {
 
     Ticket findByEventEventIdAndUserUserId(String eventId, String userId);
 
-    List<Ticket> findByEventEventIdAndUserUserIdAndTicketStatus(String eventId, String userId, TicketStatus status);
+    Ticket findByTicketIdAndTicketStatus(String ticketId, TicketStatus status);
 
     List<Ticket> findByTicketStatusAndExpiryDate(TicketStatus status, LocalDate expiryDate);
 

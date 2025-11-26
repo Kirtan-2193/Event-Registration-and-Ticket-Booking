@@ -2,6 +2,7 @@ package com.ertb.services;
 
 import com.ertb.enumerations.EventStatus;
 import com.ertb.exceptions.DataNotFoundException;
+import com.ertb.exceptions.DataValidationException;
 import com.ertb.mappers.EventMapper;
 import com.ertb.model.EventModel;
 import com.ertb.model.entities.Event;
@@ -36,7 +37,11 @@ public class EventService {
     public EventModel createEvent(EventModel eventModel) {
 
         if (eventModel.getEndDate().isBefore(eventModel.getStartDate())) {
-            throw new RuntimeException("The end date time must be before the start date.");
+            throw new DataValidationException("The end date time must be before the start date.");
+        }
+
+        if (eventModel.getAvailableTicket() <= 0) {
+            throw new DataValidationException("Available ticket must be greater than 0.");
         }
 
         Event event = eventMapper.eventModelToEvent(eventModel);

@@ -107,15 +107,15 @@ public class TicketService {
     public MessageModel refundTicket(TicketRequest ticketRequest) {
         MessageModel messageModel = new MessageModel();
 
-        Ticket ticket = ticketRepository.findByTicketId(ticketRequest.getTicketId());
+        Ticket ticket = ticketRepository.findByTicketIdAndTicketStatus(ticketRequest.getTicketId(), TicketStatus.BOOKED);
         if (ticket == null) {
-            throw new DataNotFoundException("Ticket Not Found");
+            throw new DataNotFoundException("Sorry ! You can't get refund on this ticket.");
         }
 
         Payment payment = paymentRepository.findByPaymentId(ticket.getPayment().getPaymentId());
         PaymentClientModel paymentClientModel = paymentService.refundPayment(payment.getTransactionReferenceId());
         if (!"REFUNDED".equals(paymentClientModel.getPaymentStatus())) {
-            throw new DataValidationException("Refund is Failed");
+            throw new PaymentValidationException("Refund is Failed");
         }
         payment.setPaymentStatus(PaymentStatus.REFUNDED);
         Payment savePayment = paymentRepository.save(payment);
