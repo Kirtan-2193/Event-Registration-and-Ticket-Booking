@@ -37,7 +37,6 @@ public class Payment {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    @OneToOne(mappedBy = "payment", cascade = CascadeType.ALL)
+    private Ticket ticket;
 }

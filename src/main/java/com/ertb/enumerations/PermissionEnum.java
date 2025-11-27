@@ -5,16 +5,25 @@ import lombok.Getter;
 @Getter
 public enum PermissionEnum {
 
-    // Admin Permissions
+    // Admin
+    VIEW_ALL_BOOKINGS,
+    MANAGE_USER,
+
+    // User
+    BOOK_TICKET,
+    VIEW_MY_TICKETS,
+    MAKE_PAYMENT,
+
+    // User And Admin
+    CANCEL_TICKET,
+
+    //Organizer
+    TICKET_CHECK_IN,
+
+    //Admin and Organizer
     CREATE_EVENT,
     UPDATE_EVENT,
     DELETE_EVENT,
     VIEW_ALL_EVENTS,
-    VIEW_ALL_BOOKINGS,
-
-    // User Permissions
-    BOOK_TICKET,
-    CANCEL_TICKET,
-    VIEW_MY_TICKETS,
-    MAKE_PAYMENT,
+    MANAGE_TICKETS
 }

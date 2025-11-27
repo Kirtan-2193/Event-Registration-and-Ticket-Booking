@@ -7,11 +7,9 @@ public class TicketRequest {
 
     private String eventId;
 
-    private String userId;
+    private String ticketId;
 
     private int bookedTicket;
-
-    private int ticketNumber;
 
     private Long accountNumber;
 }

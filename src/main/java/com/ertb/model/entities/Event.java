@@ -55,6 +55,4 @@ public class Event {
     @Column(name = "sold_out_ticket")
     private int soldOutTicket;
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Payment> payments;
 }

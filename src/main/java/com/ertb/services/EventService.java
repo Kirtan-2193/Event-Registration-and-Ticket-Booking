@@ -2,6 +2,7 @@ package com.ertb.services;
 
 import com.ertb.enumerations.EventStatus;
 import com.ertb.exceptions.DataNotFoundException;
+import com.ertb.exceptions.DataValidationException;
 import com.ertb.mappers.EventMapper;
 import com.ertb.model.EventModel;
 import com.ertb.model.entities.Event;
@@ -36,7 +37,11 @@ public class EventService {
     public EventModel createEvent(EventModel eventModel) {
 
         if (eventModel.getEndDate().isBefore(eventModel.getStartDate())) {
-            throw new RuntimeException("The end date time must be before the start date.");
+            throw new DataValidationException("The end date time must be before the start date.");
+        }
+
+        if (eventModel.getAvailableTicket() <= 0) {
+            throw new DataValidationException("Available ticket must be greater than 0.");
         }
 
         Event event = eventMapper.eventModelToEvent(eventModel);
@@ -53,7 +58,7 @@ public class EventService {
 
         EventModel returnEventModel = eventMapper.eventToEventModel(event);
 
-        // 🔥 Save event in Redis for 2 days
+        // Save event in Redis for 2 days
         String redisKey = EVENT_KEY_PREFIX + event.getEventId();
         redisTemplate.opsForValue().set(redisKey, returnEventModel, Duration.ofDays(2));
 
@@ -101,7 +106,7 @@ public class EventService {
         List<EventModel> cachedEventList = (List<EventModel>) redisTemplate.opsForValue().get(redisKey);
 
         if (cachedEventList != null) {
-            System.out.println("Fetching Events from Redis Cache");
+            log.info("Fetching Events from Redis Cache");
             return cachedEventList;
         }
 

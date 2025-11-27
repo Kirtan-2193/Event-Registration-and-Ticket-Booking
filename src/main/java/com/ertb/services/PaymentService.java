@@ -2,6 +2,7 @@ package com.ertb.services;
 
 import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.exceptions.DataValidationException;
+import com.ertb.exceptions.PaymentValidationException;
 import com.ertb.model.PaymentClientModel;
 import com.ertb.model.PaymentResponse;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +47,7 @@ public class PaymentService {
                         .blockFirst();
             } catch (final Exception e) {
                 log.error("Error occurred while making payment: {}", e.getMessage());
-                throw new DataValidationException("Payment failed, Please try again.");
+                throw new PaymentValidationException("Payment failed, Please try again.");
             }
         }
     }
@@ -64,7 +65,7 @@ public class PaymentService {
                     .blockFirst();
         } catch (Exception e) {
             log.error("Error occurred while refund payment: {}", e.getMessage());
-            throw new DataValidationException("Refund is fail, Please try again.");
+            throw new PaymentValidationException("Refund is fail, Please try again.");
         }
     }
 }
