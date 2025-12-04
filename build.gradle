@@ -58,7 +58,7 @@ dependencies {
 	implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 
 	// DB & Migration
-	implementation 'org.flywaydb:flyway-core:9.16.0'
+//	implementation 'org.flywaydb:flyway-core:9.16.0'
 	implementation 'org.postgresql:postgresql:42.7.5'
 
 	// Spring Boot DevTools for development

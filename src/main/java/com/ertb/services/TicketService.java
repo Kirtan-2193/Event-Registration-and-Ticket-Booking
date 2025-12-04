@@ -25,6 +25,7 @@ import com.ertb.repositories.EventRepository;
 import com.ertb.repositories.PaymentRepository;
 import com.ertb.repositories.TicketRepository;
 import com.ertb.repositories.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -62,6 +63,7 @@ public class TicketService {
     private final PaymentService paymentService;
 
 
+    @Transactional
     public BookedEvent bookedTicket(TicketRequest ticketRequest, String email) {
         User user = userRepository.findByEmail(email);
         Event event = eventRepository.findByEventIdAndEventStatusIn(ticketRequest.getEventId(), List.of(EventStatus.OPEN, EventStatus.UPCOMING)).orElseThrow(
@@ -104,6 +106,7 @@ public class TicketService {
 
 
 
+    @Transactional
     public MessageModel refundTicket(TicketRequest ticketRequest) {
         MessageModel messageModel = new MessageModel();
 
@@ -189,17 +192,17 @@ public class TicketService {
 
     public TicketModel addTicket(User user, Event event, Payment payment, int bookedTicket, TicketStatus status) {
 
-            Ticket ticket = new Ticket();
-            ticket.setUser(user);
-            ticket.setEvent(event);
-            ticket.setPayment(payment);
-            ticket.setExpiryDate(event.getEndDate());
-            ticket.setExpiryTime(event.getEndTime());
-            ticket.setTicketStatus(status);
-            ticket.setAllocatedTicket(bookedTicket);
-            ticketRepository.save(ticket);
-            event.setSoldOutTicket(event.getSoldOutTicket() + 1);
-            eventRepository.save(event);
+        Ticket ticket = new Ticket();
+        ticket.setUser(user);
+        ticket.setEvent(event);
+        ticket.setPayment(payment);
+        ticket.setExpiryDate(event.getEndDate());
+        ticket.setExpiryTime(event.getEndTime());
+        ticket.setTicketStatus(status);
+        ticket.setAllocatedTicket(bookedTicket);
+        ticketRepository.save(ticket);
+        event.setSoldOutTicket(event.getSoldOutTicket() + 1);
+        eventRepository.save(event);
 
         return ticketMapper.ticketToTicketModel(ticket);
     }
