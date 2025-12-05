@@ -5,11 +5,18 @@ import com.ertb.enumerations.PaymentStatus;
 import com.ertb.enumerations.TicketStatus;
 import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.exceptions.DataValidationException;
+import com.ertb.exceptions.PaymentValidationException;
 import com.ertb.mappers.EventMapper;
 import com.ertb.mappers.PaymentMapper;
 import com.ertb.mappers.TicketMapper;
 import com.ertb.mappers.UserMapper;
-import com.ertb.model.*;
+import com.ertb.model.BookedEvent;
+import com.ertb.model.MessageModel;
+import com.ertb.model.PaymentClientModel;
+import com.ertb.model.PaymentResponse;
+import com.ertb.model.TicketModel;
+import com.ertb.model.TicketRequest;
+import com.ertb.model.UserTicket;
 import com.ertb.model.entities.Event;
 import com.ertb.model.entities.Payment;
 import com.ertb.model.entities.Ticket;
@@ -18,11 +25,11 @@ import com.ertb.repositories.EventRepository;
 import com.ertb.repositories.PaymentRepository;
 import com.ertb.repositories.TicketRepository;
 import com.ertb.repositories.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -56,9 +63,9 @@ public class TicketService {
     private final PaymentService paymentService;
 
 
-    public BookedEvent bookedTicket(TicketRequest ticketRequest) {
-        User user = userRepository.findByUserId(ticketRequest.getUserId()).orElseThrow(
-                () -> new DataNotFoundException("User Not Found"));
+    @Transactional
+    public BookedEvent bookedTicket(TicketRequest ticketRequest, String email) {
+        User user = userRepository.findByEmail(email);
         Event event = eventRepository.findByEventIdAndEventStatusIn(ticketRequest.getEventId(), List.of(EventStatus.OPEN, EventStatus.UPCOMING)).orElseThrow(
                 () -> new DataNotFoundException("Event Not Found or Event is ended now"));
 
@@ -75,7 +82,7 @@ public class TicketService {
         PaymentClientModel paymentClientModel = paymentService.makePayment(ticketRequest.getAccountNumber(), totalAmount);
 
         if (!"SUCCESS".equals(paymentClientModel.getPaymentStatus())){
-            throw new DataValidationException("Payment Failed");
+            throw new PaymentValidationException("Payment Failed");
         }
 
         PaymentResponse paymentResponse = new PaymentResponse();
@@ -86,12 +93,12 @@ public class TicketService {
 
         Payment payment = paymentMapper.paymentResponseToPayment(paymentResponse);
         payment.setUser(user);
-        paymentRepository.save(payment);
+        Payment savePayment = paymentRepository.save(payment);
 
-        List<TicketModel> ticketModelList = addTicket(user, event, ticketRequest.getBookedTicket());
+        TicketModel ticketModel = addTicket(user, event, savePayment, ticketRequest.getBookedTicket(), TicketStatus.BOOKED);
 
         BookedEvent bookedEvent = eventMapper.eventToBookedEvent(event);
-        bookedEvent.setTicket(ticketModelList);
+        bookedEvent.setTicket(ticketModel);
         bookedEvent.setTotalPrice(totalAmount);
 
         return bookedEvent;
@@ -99,19 +106,52 @@ public class TicketService {
 
 
 
-    public UserTicket getTickets(String userId) {
+    @Transactional
+    public MessageModel refundTicket(TicketRequest ticketRequest) {
+        MessageModel messageModel = new MessageModel();
 
-        // 1️⃣ Get user info
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new DataNotFoundException("User not found with ID: " + userId));
-
-        // 2️⃣ Get all tickets of this user
-        List<Ticket> tickets = ticketRepository.findByUserUserIdAndTicketStatus(userId, TicketStatus.BOOKED);
-        if (tickets.isEmpty()) {
-            throw new DataNotFoundException("No tickets found for user: " + userId);
+        Ticket ticket = ticketRepository.findByTicketIdAndTicketStatus(ticketRequest.getTicketId(), TicketStatus.BOOKED);
+        if (ticket == null) {
+            throw new DataNotFoundException("Sorry ! You can't get refund on this ticket.");
         }
 
-        // 3️⃣ Group tickets by event
+        Payment payment = paymentRepository.findByPaymentId(ticket.getPayment().getPaymentId());
+        PaymentClientModel paymentClientModel = paymentService.refundPayment(payment.getTransactionReferenceId());
+        if (!"REFUNDED".equals(paymentClientModel.getPaymentStatus())) {
+            throw new PaymentValidationException("Refund is Failed");
+        }
+        payment.setPaymentStatus(PaymentStatus.REFUNDED);
+        Payment savePayment = paymentRepository.save(payment);
+
+        if (savePayment.getPaymentStatus().equals(PaymentStatus.REFUNDED)) {
+            ticket.setTicketStatus(TicketStatus.CANCELLED);
+            ticketRepository.save(ticket);
+
+            Event event = ticket.getEvent();
+            event.setSoldOutTicket(event.getSoldOutTicket() - ticket.getAllocatedTicket());
+            eventRepository.save(event);
+
+            messageModel.setMessage("Your Tickets are Successfully cancelled");
+        } else {
+            messageModel.setMessage("Tickets are not cancelled");
+        }
+        return messageModel;
+    }
+
+
+
+    public UserTicket getTickets(String email) {
+
+        // Get user info
+        User user = userRepository.findByEmail(email);
+
+        // Get all tickets of this user
+        List<Ticket> tickets = ticketRepository.findByUserUserIdAndTicketStatus(user.getUserId(), TicketStatus.BOOKED);
+        if (tickets.isEmpty()) {
+            throw new DataNotFoundException("No tickets found for user: " + user.getUserId());
+        }
+
+        // Group tickets by event
         Map<Event, List<Ticket>> ticketsByEvent = tickets.stream()
                 .collect(Collectors.groupingBy(Ticket::getEvent));
         List<Event> eventList = new ArrayList<>();
@@ -122,10 +162,10 @@ public class TicketService {
 
         List<BookedEvent> bookedEventList = eventMapper.eventListToBookedEventList(eventList);
         bookedEventList.forEach(bookedEvent -> {
-            List<Ticket> ticketList = ticketRepository.findByEventEventIdAndUserUserId(bookedEvent.getEventId(), userId);
-            List<TicketModel> ticketModelList = ticketMapper.ticketListToTicketModelList(ticketList);
-            bookedEvent.setTotalPrice(bookedEvent.getTicketPrice() * ticketList.size());
-            bookedEvent.setTicket(ticketModelList);
+             Ticket ticket = ticketRepository.findByEventEventIdAndUserUserId(bookedEvent.getEventId(), user.getUserId());
+             TicketModel ticketModel = ticketMapper.ticketToTicketModel(ticket);
+            bookedEvent.setTotalPrice(bookedEvent.getTicketPrice() * ticket.getAllocatedTicket());
+            bookedEvent.setTicket(ticketModel);
         });
 
         UserTicket userTicket = userMapper.userToUserTicket(user);
@@ -150,21 +190,37 @@ public class TicketService {
     }
 
 
-    public List<TicketModel> addTicket(User user, Event event, int bookedTicket) {
-        List<Ticket> ticketList = new ArrayList<>();
-        for (int ticketBook = 0; ticketBook < bookedTicket; ticketBook++) {
-            Ticket ticket = new Ticket();
-            ticket.setUser(user);
-            ticket.setEvent(event);
-            ticket.setExpiryDate(event.getEndDate());
-            ticket.setExpiryTime(event.getEndTime());
-            ticket.setTicketStatus(TicketStatus.BOOKED);
-            ticket.setTicketNumber(event.getSoldOutTicket() + 1);
-            ticketRepository.save(ticket);
-            event.setSoldOutTicket(event.getSoldOutTicket() + 1);
-            eventRepository.save(event);
-            ticketList.add(ticket);
+    public TicketModel addTicket(User user, Event event, Payment payment, int bookedTicket, TicketStatus status) {
+
+        Ticket ticket = new Ticket();
+        ticket.setUser(user);
+        ticket.setEvent(event);
+        ticket.setPayment(payment);
+        ticket.setExpiryDate(event.getEndDate());
+        ticket.setExpiryTime(event.getEndTime());
+        ticket.setTicketStatus(status);
+        ticket.setAllocatedTicket(bookedTicket);
+        ticketRepository.save(ticket);
+        event.setSoldOutTicket(event.getSoldOutTicket() + 1);
+        eventRepository.save(event);
+
+        return ticketMapper.ticketToTicketModel(ticket);
+    }
+
+    public MessageModel ticketChecking(TicketRequest ticketRequest) {
+        MessageModel messageModel = new MessageModel();
+        Ticket ticket = ticketRepository.findByTicketId(ticketRequest.getTicketId());
+        if (ticket == null){
+            throw new DataValidationException("Ticket Not Available");
         }
-        return ticketMapper.ticketListToTicketModelList(ticketList);
+
+        if (!ticket.getTicketStatus().equals(TicketStatus.BOOKED)){
+            throw new DataValidationException("Sorry ! Your not check-in deu to, Ticket is " +ticket.getTicketStatus()+ ".");
+        } else {
+            ticket.setTicketStatus(TicketStatus.USED);
+            ticketRepository.save(ticket);
+            messageModel.setMessage("Allow to check in");
+        }
+        return messageModel;
     }
 }

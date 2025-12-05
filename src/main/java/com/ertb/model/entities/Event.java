@@ -2,19 +2,13 @@ package com.ertb.model.entities;
 
 import com.ertb.enumerations.EventStatus;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Entity
 @Table(name = "events")
@@ -60,4 +54,5 @@ public class Event {
 
     @Column(name = "sold_out_ticket")
     private int soldOutTicket;
+
 }

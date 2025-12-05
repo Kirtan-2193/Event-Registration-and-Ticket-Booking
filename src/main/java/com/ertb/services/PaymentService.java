@@ -1,6 +1,8 @@
 package com.ertb.services;
 
+import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.exceptions.DataValidationException;
+import com.ertb.exceptions.PaymentValidationException;
 import com.ertb.model.PaymentClientModel;
 import com.ertb.model.PaymentResponse;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -35,15 +40,32 @@ public class PaymentService {
             try {
                 return paymentWebClient.post()
                         .uri(uriBuilder -> uriBuilder
-                                .path(PAYMENT_SERVICE_ENDPOINT)
+                                .path(PAYMENT_SERVICE_ENDPOINT+"/create")
                                 .queryParams(queryParams).build())
                         .retrieve()
                         .bodyToFlux(PaymentClientModel.class)
                         .blockFirst();
             } catch (final Exception e) {
                 log.error("Error occurred while making payment: {}", e.getMessage());
-                throw new DataValidationException("Payment failed, Please try again.");
+                throw new PaymentValidationException("Payment failed, Please try again.");
             }
+        }
+    }
+
+
+
+    public PaymentClientModel refundPayment(final String paymentReferenceId) {
+        try {
+            return paymentWebClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path(PAYMENT_SERVICE_ENDPOINT+"/refund")
+                            .queryParam("paymentId", paymentReferenceId).build())
+                    .retrieve()
+                    .bodyToFlux(PaymentClientModel.class)
+                    .blockFirst();
+        } catch (Exception e) {
+            log.error("Error occurred while refund payment: {}", e.getMessage());
+            throw new PaymentValidationException("Refund is fail, Please try again.");
         }
     }
 }

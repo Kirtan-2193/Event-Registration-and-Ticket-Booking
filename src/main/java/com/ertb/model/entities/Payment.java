@@ -27,10 +27,16 @@ public class Payment {
     @Column(name = "payment_at")
     private LocalDateTime paymentAt = LocalDateTime.now();
 
+    @Column(name = "description")
+    private String message;
+
     @Column(name = "transaction_reference_id")
     private String transactionReferenceId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToOne(mappedBy = "payment", cascade = CascadeType.ALL)
+    private Ticket ticket;
 }

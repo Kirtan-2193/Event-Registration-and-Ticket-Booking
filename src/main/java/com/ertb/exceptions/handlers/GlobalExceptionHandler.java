@@ -2,6 +2,7 @@ package com.ertb.exceptions.handlers;
 
 import com.ertb.exceptions.DataNotFoundException;
 import com.ertb.exceptions.DataValidationException;
+import com.ertb.exceptions.PaymentValidationException;
 import com.ertb.model.error.ErrorResponse;
 import com.ertb.model.error.ErrorType;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataValidationException.class)
     public ResponseEntity<ErrorResponse> handlerDataValidationException(DataValidationException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(), ErrorType.INVALID_DATA);
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(PaymentValidationException.class)
+    public ResponseEntity<ErrorResponse> handlerPaymentValidationException(PaymentValidationException ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(), ErrorType.INVALID_DATA);
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
